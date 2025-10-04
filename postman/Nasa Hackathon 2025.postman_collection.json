@@ -1,0 +1,82 @@
+{
+	"info": {
+		"_postman_id": "c722785b-5a77-42cf-87cc-b2ed5eaea24e",
+		"name": "Nasa Hackathon 2025",
+		"description": "Postman for Nasa Hackathon in 2025 for the [Will It Rain On My Parade? ](https://www.spaceappschallenge.org/2025/challenges/will-it-rain-on-my-parade/) challenge.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "20863727"
+	},
+	"item": [
+		{
+			"name": "Forecast",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{url}}/{{prefix}}/forecast?first_date=1980-01-01&last_date=1980-01-01&lat=-23.533773&long=-46.625290",
+					"host": [
+						"{{url}}"
+					],
+					"path": [
+						"{{prefix}}",
+						"forecast"
+					],
+					"query": [
+						{
+							"key": "first_date",
+							"value": "1980-01-01"
+						},
+						{
+							"key": "last_date",
+							"value": "1980-01-01"
+						},
+						{
+							"key": "lat",
+							"value": "-23.533773"
+						},
+						{
+							"key": "long",
+							"value": "-46.625290"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "url",
+			"value": ""
+		},
+		{
+			"key": "prefix",
+			"value": "",
+			"type": "default"
+		}
+	]
+}

@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+source = "main.py"
+
+[packages]
+pandas = "*"
+xarray = "*"
+netcdf4 = "*"
+h5netcdf = "*"
+pydap = "*"
+scipy = "*"
+flask = "*"
+fsspec = "*"
+earthaccess = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"
