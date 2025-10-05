@@ -56,12 +56,12 @@ def forecast():
             abort(400, description="Chosen date must be greater than current date")
 
         
-        first_date=chosen_date_formated - timedelta(days=0)
+        first_date=chosen_date_formated - timedelta(days=10)
         last_date=chosen_date_formated
 
         timestamps_10_years = []
 
-        for value in range(1, 2):
+        for value in range(1, 10):
             one_year = timedelta(days=365 * value)
 
             timestamps_10_years.append({
