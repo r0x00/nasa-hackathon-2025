@@ -19,6 +19,7 @@ obstore = "*"
 virtualizarr = "*"
 prophet = "*"
 dask = "*"
+numpy = "*"
 
 [dev-packages]
 

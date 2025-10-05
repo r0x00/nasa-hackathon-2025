@@ -1,28 +1,38 @@
 from prophet import Prophet
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 
-def estimate(data): 
+def estimate(data, chosen_date): 
     df = pd.DataFrame(data)
-
-
-    # Prepare the data in the right format for Prophet
-    df_prophet = df
-    
-    # df[['ds', 'y']].rename(columns={'date': 'ds', 'temperature': 'y'})
 
     # Initialize Prophet model and fit the data
     model = Prophet(yearly_seasonality=True)
-    model.fit(df_prophet)
+
+    for key in data.keys():
+        if key in ("y", "ds"): 
+            continue
+
+        model.add_regressor(key)
+
+    model.fit(df)
 
     # Create future dates (e.g., for the next 6 months)
-    future = model.make_future_dataframe(periods=180)  # 180 days = ~6 months
+    future = model.make_future_dataframe(periods=7) 
+
+    for key in data.keys():
+        if key in ("y", "ds"): 
+            continue
+
+        future[key] = np.concatenate([df[key].values, [300] * 180])
+
 
     # Predict future temperature
     forecast = model.predict(future)
 
     forecast_data = forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']]
+    
 
     # Plot the forecast
     model.plot(forecast)
