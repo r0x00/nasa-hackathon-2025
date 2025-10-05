@@ -3,7 +3,7 @@ import xarray as xr
 import pandas as pd
 import numpy as np
 import earthaccess
-from src.predictive_model import estimate, summarize
+from src.predictive_model import estimate, data_estimate_forecast
 from datetime import date,timedelta, datetime
 
 app = Flask(__name__)
@@ -16,18 +16,14 @@ def index():
 search_data={
     "M2T1NXSLV": [
         'CLDPRS', #cloud pressure
-        'CLDTMP', #cloud temperature
-        'T10M', #temperature at 10 meters
-        'T2M', #temperature at 2 meters
-        'TQI', #total quality index (air)
-        'U10M', #wind speed at 10 meters(east-west wind)
+        'CLDTMP', #cloud temperature .
+        # 'TQI', #total quality index (air)
         'U2M', #wind speed at 2 meters (east-west wind)
-        'V10M', #wind speed at 10 meters (north-south wind)
         'V2M', #wind speed at 2 meters (north-south wind)
         'TS', #sea surface temperature
         'PS', #surface pressure,
-        'QV10M', #specific humidity at 10 meters
-        'T250', #temperature at 250 hPa
+        'T250', #temperature at 250 hPa .
+        'T2M',
         'T500', #temperature at 500 hPa
         'T850', #temperature at 850 hPa
         'SLP', #sea level pressure
@@ -37,7 +33,6 @@ search_data={
     # short names 
     # M2T1NXSLV, Aqua_AIRS_MODIS1km_IND, cru_monthly_mean_xdeg_1015, PRECIP_SSMI_F13
 }
-
 
 # API
 @app.route('/api/forecast', methods=['GET'])
@@ -49,14 +44,30 @@ def forecast():
         lat=request.args.get('lat')
         long=request.args.get('long')
 
-        current_date = date.today()
-        current_date2 = datetime.strptime(chosen_date, "%Y-%d-%m")
+        if not chosen_date or not lat or not long:
+            abort(400, description="Missing required parameters")
+
+        chosen_date_formated = datetime.strptime(chosen_date, "%Y-%m-%d")
+
+        current_date = datetime.today().strftime("%Y-%m-%d")
+        current_date = datetime.strptime(current_date, "%Y-%m-%d")
+
+        if(current_date > chosen_date_formated or current_date == chosen_date_formated):
+            abort(400, description="Chosen date must be greater than current date")
+
         
+        first_date=chosen_date_formated - timedelta(days=0)
+        last_date=chosen_date_formated
 
-        first_date= current_date2 - timedelta(days=7 * 1)
-        last_date=current_date2
+        timestamps_10_years = []
 
-        print(f"First date: {first_date}, Last date: {last_date}")
+        for value in range(1, 2):
+            one_year = timedelta(days=365 * value)
+
+            timestamps_10_years.append({
+                'first_date': first_date - one_year,
+                'last_date': last_date - one_year
+            })
 
         # Earthdata login
         auth = earthaccess.login(strategy="netrc")
@@ -67,50 +78,64 @@ def forecast():
         for key, value in search_data.items():
             short_name = key
 
-            results = earthaccess.search_data(
-                short_name=short_name,
-                temporal=(first_date, last_date),
-                bounding_box=bounding_box,
-            )
-
-            result_objects = earthaccess.open(results)
-
-            ds = xr.open_mfdataset(result_objects)
-
-            time_index = pd.to_datetime(ds['time'].values)
-            # print(f"Time index length: {len(time_index)}, {time_index.shape}")
-
             estimate_data_values = {}
-            estimate_data_values['ds'] = time_index    
 
-            for v in value: 
-                result_data = ds[v].values
+            for time in timestamps_10_years:
+                print(f"Requesting data {short_name} from {time['first_date']} to {time['last_date']}")
 
-                # obs. time_index size must be equals to result_data_values size
-                result_data_values = result_data[:, 0, 0]
+                results = earthaccess.search_data(
+                    short_name=short_name,
+                    temporal=(time['first_date'], time['last_date']),
+                    bounding_box=bounding_box,
+                )
 
-                if(np.isnan(result_data_values)).any(): 
-                    continue
+                print("Results fetched!")
 
-                # print(f"Temperature values length: {len(result_data )}, {result_data.shape}")
+                result_objects = earthaccess.open(results)
+                ds = xr.open_mfdataset(result_objects)
 
-                if(v == 'T2M'):
-                    estimate_data_values['y'] = result_data_values
+                time_index = pd.to_datetime(ds['time'].values)
+                # print(f"Time index length: {len(time_index)}, {time_index.shape}")
 
-                    continue
+                estimate_data_values['ds'] = time_index  
 
-                estimate_data_values[v] = result_data_values
+                subset_data = {}
+                for v in value: 
+                    print(f"Defining lazy subset for variable {v}")
+                    
+                    # obs. time_index size must be equals to result_data_values size
+                    subset_var = ds[v].isel(lat=0, lon=0)
 
+                    subset_data[v] = subset_var  
 
-        data_estimated = estimate(estimate_data_values, chosen_date)
+                computed_results = xr.Dataset(subset_data).compute() 
 
-        data_estimated_to_especific_moment = data_estimated[data_estimated['ds'] == chosen_date]
+                for v in value: 
+                    print(f"Formating result for variable {v}")
 
-        return jsonify(data_estimated_to_especific_moment.to_dict())
+                    result_data_values = computed_results[v].values
 
+                    if np.isnan(result_data_values).any(): 
+                        continue
+
+                    if v == 'T2M':
+                        estimate_data_values['y'] = result_data_values
+                    else:
+                        estimate_data_values[v] = result_data_values
+
+        last_history_date = estimate_data_values['ds'].max()
+        periods = ((chosen_date_formated + timedelta(days=1)) - last_history_date).days
+                        
+        data_estimated = estimate(estimate_data_values, periods, chosen_date)
+
+        return jsonify(data_estimated)
 
 
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-        abort(500, description="An unexpected error occurred")
+
+        error_code= e.code if e and type(e) is dict else 500
+        error= str(e.description) if e and type(e) is dict  else "An unexpected error occurred"
+
+        abort(error_code, description=error)
 

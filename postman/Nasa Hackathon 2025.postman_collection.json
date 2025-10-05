@@ -13,7 +13,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{url}}/{{prefix}}/forecast?first_date=1980-01-01&last_date=1980-01-01&lat=-23.533773&long=-46.625290",
+					"raw": "{{url}}/{{prefix}}/forecast?chosen_date=2025-10-6&lat=-23.533773&long=-46.625290",
 					"host": [
 						"{{url}}"
 					],
@@ -23,12 +23,8 @@
 					],
 					"query": [
 						{
-							"key": "first_date",
-							"value": "1980-01-01"
-						},
-						{
-							"key": "last_date",
-							"value": "1980-01-01"
+							"key": "chosen_date",
+							"value": "2025-10-6"
 						},
 						{
 							"key": "lat",
